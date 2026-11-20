@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Auditoría de campo HFC y GPON</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b3a6e'/%3E%3Cpath d='M16 40c8-14 24-14 32 0' stroke='%234cc982' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='50' r='4.5' fill='%23ffffff'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#eef2f4;--card:#fff;--ink:#14232b;--mut:#566870;--line:#d3dbdf;--brand:#0b3a6e;--on:#fff;--ok:#1b7a43;--bad:#c0392b;--warn:#a86b00;--na:#6d7d85;--okb:#e3f3ea;--badb:#fbe6e3;--warnb:#fff0d6;--nab:#e8edef;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a20;--card:#17262e;--ink:#e6eef1;--mut:#9db0b8;--line:#2c4049;--brand:#5aa2e8;--on:#0a1a2a;--ok:#4cc982;--bad:#ff8d7f;--warn:#f0b24d;--na:#9db0b8;--okb:#12392a;--badb:#451f1b;--warnb:#3d2f10;--nab:#22333b}}
+:root[data-theme="dark"]{--bg:#0f1a20;--card:#17262e;--ink:#e6eef1;--mut:#9db0b8;--line:#2c4049;--brand:#5aa2e8;--on:#0a1a2a;--ok:#4cc982;--bad:#ff8d7f;--warn:#f0b24d;--na:#9db0b8;--okb:#12392a;--badb:#451f1b;--warnb:#3d2f10;--nab:#22333b}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 120px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:0 12px 90px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--brand);color:var(--on);padding:10px 12px;margin:0 -12px 12px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--brand);z-index:10}
+h1{font-size:18px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+h1 .ttl{display:inline-flex;align-items:center;gap:8px}
+h1 small{font-size:11px;font-weight:500;opacity:.9}
+.seg{display:flex;gap:6px;margin-bottom:6px}
+.seg button{flex:1;padding:9px 6px;border-radius:8px;border:2px solid var(--on);background:transparent;color:var(--on);font:600 15px inherit;min-height:44px;cursor:pointer}
+.seg button.on{background:var(--on);color:var(--brand)}
+.score{display:flex;align-items:center;gap:10px;font-size:14px}
+.bar{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.3);overflow:hidden}.bar i{display:block;height:100%;background:var(--on);transition:width .2s}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.card>h2,summary{font-size:16px;margin:0;padding:12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+summary small{font-weight:500;color:var(--mut)}
+.pad{padding:0 12px 12px}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 2px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:16px inherit;min-height:44px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.it{border-top:1px solid var(--line);padding:10px 12px}
+.it p{margin:0 0 6px}.ref{font-size:12px;color:var(--mut)}.crit{color:var(--bad);font-weight:700;font-size:12px}
+.b3{display:flex;gap:6px}
+.b3 button{flex:1;min-height:44px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:600 14px inherit;cursor:pointer}
+.b3 .ok.on{background:var(--ok);border-color:var(--ok);color:var(--card)}
+.b3 .bad.on{background:var(--bad);border-color:var(--bad);color:var(--card)}
+.b3 .na.on{background:var(--na);border-color:var(--na);color:var(--card)}
+.it textarea{margin-top:8px;min-height:44px;height:52px}
+.ph-row{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ph-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1.5px dashed var(--brand);color:var(--brand);background:transparent;font:600 13px inherit;cursor:pointer;min-height:38px}
+.ph-btn input{display:none}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.th{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.th img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.th button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.72);color:#fff;font:700 14px/1 sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.ph-cnt{font-size:12px;color:var(--mut)}
+.m{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:end;border-top:1px solid var(--line);padding:10px 12px}
+.chip{grid-column:1/3;font-size:13px;padding:4px 8px;border-radius:6px;background:var(--nab);color:var(--na)}
+.chip.ok{background:var(--okb);color:var(--ok)}.chip.bad{background:var(--badb);color:var(--bad)}.chip.warn{background:var(--warnb);color:var(--warn)}
+.act{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.act button{flex:1;min-width:145px;min-height:48px;border-radius:10px;border:2px solid var(--brand);background:var(--brand);color:var(--on);font:700 15px inherit;cursor:pointer}
+.act button.drive{background:#1b7a43;border-color:#1b7a43;color:#fff}
+.act button.sec{background:transparent;color:var(--brand)}
+.act button:disabled{opacity:.55;cursor:wait}
+.res{padding:12px}.res h3{margin:0 0 6px;font-size:20px}
+.res.ok h3{color:var(--ok)}.res.bad h3{color:var(--bad)}.res.warn h3{color:var(--warn)}
+.res li{margin:3px 0}
+dialog{width:min(700px,94vw);border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:14px}
+dialog::backdrop{background:rgba(0,0,0,.65)}
+#imgDlg{text-align:center;padding:10px}
+#imgDlg img{max-width:100%;max-height:75vh;border-radius:8px;display:block;margin:0 auto 10px}
+.cfg-box{background:var(--nab);padding:10px;border-radius:8px;margin-top:8px;font-size:13px}
+@media print{
+  header,.act,.b3,.ph-btn,.th button,.cfg-box{display:none!important}
+  body{background:#fff}
+  .th{width:130px;height:130px;break-inside:avoid}
+  details{display:block}
+}
+</style></head><body>
+<div class="wrap">
+<header>
+  <h1>
+    <span class="ttl">
+      <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="rgba(255,255,255,.18)"/>
+        <path d="M16 38c8-14 24-14 32 0" stroke="#4cc982" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="32" cy="48" r="4.5" fill="#ffffff"/>
+      </svg>
+      Auditoría de campo
+    </span>
+    <small id="mem"></small>
+  </h1>
+  <div class="seg" id="sn"></div><div class="seg" id="sp"></div>
+  <div class="score"><span id="sc">0%</span><div class="bar"><i id="sb" style="width:0"></i></div><span id="sa">0/0</span></div>
+</header>
+<div id="app"></div></div>
+
+<dialog id="imgDlg"><img id="imgFull" alt="Evidencia"><div class="act"><button class="sec" onclick="imgDlg.close()">Cerrar vista previa</button></div></dialog>
+
+<script>
+const E=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=id=>document.getElementById(id);
+
+const H_PRE=["Previo y TAP",[["Existe medidor de energía eléctrica en el domicilio","Norma HFC 1.3",0],["Sin cuenta activa previa, o con autorización comercial del supervisor","HFC 1.3",0],["Todas las bocas quedan dentro de la propiedad del cliente; no se comparte servicio con vecinos","HFC 1.3",1],["Se usó el TAP más cercano con boca disponible; sin divisores para sumar acometidas","HFC 1.2",1],["Bocas libres del TAP con trampa de seguridad o carga de 75 Ω; conexiones del TAP ajustadas","HFC 1.10",1],["Loop de 15 a 20 cm a la salida del TAP","HFC 1.7",0],["Nomenclador y banderita correctos (azul Internet, roja TV+Internet, ninguna solo TV)","HFC 1.8-1.9",0],["Filtro FHP-105 en el TAP solo si el cliente es solo TV","HFC 1.10",1]]];
+const H_EXT=["Acometida y recorrido externo",[["Acometida + recorrido externo dentro del máximo: RG-6 hasta 50 m, RG-11 hasta 80 m","HFC 1.1",1],["Altura del cable sobre la calzada no menor a 5 m","HFC 1.4",1],["Q-Span a 90° de la red, uno por acometida, sin invadir propiedad vecina","HFC 1.5-1.6",1],["Precintado al suspensor cada 2 m sin abrazar los cables de red; sin enroscar ni usar el portante para tensar","HFC 1.6",0],["Sujeción con portante a pitones de 8 mm (nunca el cable directo); cintillos sin doble vuelta","HFC 2",0],["Sin recorridos en diagonal, sin acometida directa a balcones, sin sujetar en rejas ni torres","HFC 1.4, 2",0],["Dos pitones en cada cambio de dirección; perforaciones a 10 cm o más del borde","HFC 2",0],["Radio de curvatura respetado (RG-6 7 cm, RG-11 10 cm); cable sin aplastamientos","HFC Principios",1],["Divisores no instalados a la intemperie, en bajada eléctrica ni en techo","HFC 2.1",1]]];
+const H_INT=["Recorrido interno y conectores",[["Tubo pasa pared en ambos extremos, con pendiente hacia el exterior (3 cm) y lazo de goteo de 14 cm","HFC 3",0],["Cable homologado RG-6; sin materiales del cliente no certificados","HFC 3, 4",1],["Grapas cada 0,5 m y dos juntas al final; sin deformar el cable","HFC 3",0],["Tramo suelto para el equipo de 2 m como máximo; sin alargues","HFC 3, 5",0],["Conectores de compresión de la empresa, armados con pelacables homologado (sin cutter), pin sin cortar","HFC Armado",1],["Conectores con inspección visual y mecánica correcta (no ceden ni giran)","HFC Prueba",1],["Todos los conectores ajustados con llave de torque de 30 lb, incluidos los del CPE","HFC Ajuste",1],["Divisor adecuado a la cantidad de bocas; filtro de retorno en ramas de TV","HFC 5.2",1],["Cablemódem conectado desde el primer divisor y sin filtro (salvo instalación por ducto)","HFC 5.2",1]]];
+const H_CPE=["Equipos, WiFi y cierre",[["Cablemódem a 1 m o más de altura, en vertical, bajo techo, a 50 cm o más de equipos electrónicos y lejos de metales y espejos","HFC 5.2.1",0],["Centro de uso acordado con el cliente; zonas de baja señal explicadas y anotadas en la OT","HFC 5.2.1",0],["Cobertura certificada con TWizard en 2 o más dependencias, con foto del cablemódem","HFC 5.2.1",0],["Mismo SSID, clave y seguridad en 2,4 y 5 GHz (band steering); canales 1/6/11 y 36-48 si es manual","HFC Config.",0],["Cablemódem activado en el portal cautivo antes de cerrar la OT","HFC Activación",1],["Decodificador por HDMI si el TV lo permite; cliente probó el servicio","HFC 5.1",0],["Cliente educado y OT firmada; consumo de cable y materiales correctos (secuenciales)","HFC OT",0]]];
+const H_MNT=["Mantenimiento HFC",[["Máximo un empalme externo y uno interno; ninguno en el vuelo del cable","HFC Anexo 3",1],["Empalme externo con lazo, sujeto en ambos extremos a puntos fijos y vulcanizado completo","HFC Anexo 3",1],["Empalme interno fijado con grapas y cubierto con cinta autovulcanizante","HFC Anexo 3",0],["Cableado existente RG-6/RG-11 homologado y revisado visualmente en todo su tramo","HFC 4.1",1],["Todos los pasivos (divisores y conectores) reemplazados en cableado existente","HFC 4.2",1],["Cable no homologado solo con autorización del supervisor, evidencias y nota en la OT","HFC 4.3",1],["Niveles medidos y registrados en la OT al cierre","HFC 5",0],["Material reemplazado y causa de la falla anotados en la OT (propuesto)","Propuesto",0]]];
+const G_PRE=["Previo y NAP",[["Dirección coincide con la tarea; cliente en casa antes de descargar equipos; identificación visible","GPON 1",0],["Plan de recorrido y ubicación de ONT acordados con el cliente antes de empezar","GPON 1",0],["Potencia medida en el NAP antes de instalar y dentro del rango (-12 a -24 dBm a 1490 nm)","GPON 3",1],["NAP verificado contra la orden y con puerto disponible","GPON 1",1],["Acometida dentro del límite: urbana hasta 100 m, rural hasta 300 m","GPON 3",1],["Materiales y herramientas homologados; sin reutilizar materiales de otros operadores","GPON 1, 3",1]]];
+const G_EXT=["Acometida externa y NAP",[["NAP a 1,5 m o menos del poste; cable drop no pasa por el frente del NAP","GPON 15",0],["Bucle de 20 x 20 cm antes del puerto del NAP","GPON 15",0],["Correa de marcación azul a 10 cm del NAP con la nomenclatura troquelada","GPON 15",0],["Vano de 80 m o menos; flecha cercana al 1% del vano","GPON 12",0],["Luz mínima sobre la vía de 4,5 m; un solo cruce de vía por cuadra","GPON 12",1],["Cable amarrado al tensor de aluminio con correas hasta el poste; escalera apoyada y asegurada","GPON 12, 15",0],["Cierre lineal no queda a mitad del vuelo; en postes de paso 70-80 cm de cable sin mensajero más 30 cm de ganancia","GPON 4",1]]];
+const G_INT=["Red interna y ONT",[["Perforación en fachada con buje exterior e interior; bucle de goteo de 15 cm","GPON 6",0],["Canaleta fijada con chazos cada 1,5 a 2 m; cable nunca partiendo muro","GPON 6",0],["Radio de curvatura de la fibra G657.A2 respetado; sin aplastamientos","GPON 6",1],["Ventaja de unos 30 cm de cable para conectorizar","GPON 6",0],["Roseta instalada completa (tapa, seguro, chazos, adaptador SC/APC con protectores)","GPON 6",0],["ONT a 1-1,5 m del suelo, lejos de ventanales, escaleras y electrónicos","GPON 17",0],["Si el equipo está a más de 1 m de la ONT: cable U/UTP de hasta 50 m con conector RJ-45/RJ-11","GPON 3",0]]];
+const G_CON=["Conectorización y limpieza",[["Conector SC/APC de campo homologado, con herramientas limpias y en buen estado","GPON 14",1],["Ambos conectores limpiados antes del acople (lápiz y, si hace falta, alcohol isopropílico)","GPON 14",1],["Sin suponer que el tapón garantiza limpieza; sin métodos de limpieza inadecuados","GPON 14",0],["Pérdida de conectorización e inserción mínima: potencia en ONT medida y registrada","GPON 3",1]]];
+const G_WIFI=["WiFi, servicios y cierre",[["Certificación WiFi con TWizard en los espacios del hogar; zonas de cobertura comunicadas","GPON 17",0],["ONT/repetidor con RSSI de -65 dBm o mejor en los puntos clave","GPON 17",0],["Decodificador por HDMI; pruebas en cada STB del cliente","GPON 1, 3",0],["Cliente educado en servicios y canales de autogestión; zona de trabajo limpia","GPON 1",0],["OT registrada con materiales y equipos; cumplido validado con despacho y firmada por el cliente","GPON 18",0]]];
+const G_SST=["Seguridad y salud (SG-SST)",[["Escalera adecuada, sobre base estable y asegurada al poste; no se usa con lluvia ni viento fuerte","GPON 1, 20",1],["EPP completo y permiso de trabajo en alturas vigente","GPON 20",1],["Estado de postes y mensajeros revisado antes de subir","GPON 1",1]]];
+const G_MNT=["Mantenimiento GPON",[["Cableado existente de Tigo revisado visualmente y medido; cambiado si no cumple","GPON 1",1],["Cierre lineal o empalme mecánico ubicado según norma (ver instalación)","GPON 4",1],["Conectores limpiados y reconectorizados si hay pérdida; medición NAP y ONT antes y después","GPON 14, 18",1],["Reparación probada en servicio y validada con despacho (aseguramiento)","GPON 18",0],["Material reemplazado y causa de la falla anotados en la OT (propuesto)","Propuesto",0]]];
+
+const S={HFC:{inst:[H_PRE,H_EXT,H_INT,H_CPE],mant:[H_MNT,H_INT,H_CPE]},GPON:{inst:[G_PRE,G_EXT,G_INT,G_CON,G_WIFI,G_SST],mant:[G_MNT,G_CON,G_WIFI,G_SST]}};
+const rg=(v,a,b)=>v>=a&&v<=b;
+const M={HFC:[["tx","TX Upstream (dBmV)",v=>rg(v,40,45)?["ok","Excelente"]:rg(v,38,48)?["ok","Bueno"]:rg(v,35,50)?["warn","Aceptable"]:["bad","Fuera de rango (35 a 50)"]],
+["rx","RX Downstream (dBmV)",v=>Math.abs(v)<=1?["ok","Excelente"]:rg(v,-5,5)?["ok","Bueno"]:rg(v,-10,10)?["warn","Aceptable"]:["bad","Fuera de rango (-10 a 10)"]],
+["mer","MER (dB)",v=>v>=41?["ok","Excelente"]:v>=38?["ok","Bueno"]:v>=35?["warn","Aceptable"]:["bad","Menor a 35"]],
+["snr","SNR (dB)",v=>v>=38?["ok","Excelente"]:v>=34?["ok","Bueno"]:v>=30?["warn","Aceptable"]:["bad","Menor a 30"]],
+["len","Acometida + externo (m)",(v,s)=>v<=(s.sub==="RG-11"?80:50)?["ok","Dentro del máximo"]:["bad","Supera "+(s.sub==="RG-11"?80:50)+" m: no instalar"]]],
+GPON:[["nap","Potencia en NAP, 1490 nm (dBm)",v=>rg(v,-24,-12)?["ok","Dentro de -12 a -24"]:["bad","Fuera de -12 a -24: no instalar"]],
+["ont","Potencia en ONT (dBm)",v=>["na","Registrar (el manual no fija umbral)"]],
+["rssi","RSSI WiFi (dBm)",v=>v>=-65?["ok","Bueno (-65 o mejor)"]:["bad","Peor que -65"]],
+["len","Longitud de acometida (m)",(v,s)=>v<=(s.sub==="Rural"?300:100)?["ok","Dentro del máximo"]:["bad","Supera "+(s.sub==="Rural"?300:100)+" m: fuera de cobertura"]]]};
+
+const DEFAULT_DRIVE_URL="https://script.google.com/macros/s/AKfycbwhAivs32o3X6RKgDXDxLjbMHy84T0DEWLnuDEe84H0KIb6BcQHqsLiYkhlQuVb9W2K/exec";
+const getDriveUrl=()=>(localStorage.getItem("aud-drive-url")||DEFAULT_DRIVE_URL).trim();
+
+let st;try{st=JSON.parse(localStorage.getItem("aud-cur")||"null")}catch(e){}
+st=st||{net:"HFC",proc:"inst",meta:{fecha:new Date().toISOString().slice(0,10)},ans:{},meas:{}};
+const open=new Set([0]);
+
+const save=()=>{
+  try{
+    const raw=JSON.stringify(st);
+    localStorage.setItem("aud-cur",raw);
+    updateMem(raw.length);
+  }catch(e){
+    alert("⚠️ Memoria local llena. Envía la auditoría a Drive o elimina algunas fotos.");
+  }
+};
+
+function updateMem(bytes){
+  const kb=Math.round((bytes||JSON.stringify(st).length)/1024);
+  const totalPhotos=Object.values(st.ans).reduce((acc,a)=>acc+(a.p?.length||0),0);
+  $("mem").textContent=`📷 ${totalPhotos} · ${kb} KB`;
+}
+
+function compressImage(file, maxW=800, quality=0.65){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width, h=img.height;
+        if(w>maxW){h=Math.round(h*(maxW/w));w=maxW}
+        const cv=document.createElement("canvas");
+        cv.width=w;cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        resolve(cv.toDataURL("image/jpeg",quality));
+      };
+      img.onerror=reject;
+      img.src=ev.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const secs=()=>S[st.net][st.proc];
+const mk=(si,ii)=>st.net+st.proc+si+"."+ii;
+
+function stats(){let c=0,n=0,t=0,cf=[],af=[];
+secs().forEach((s,si)=>s[1].forEach((it,ii)=>{t++;const a=st.ans[mk(si,ii)];if(!a||!a.v)return;if(a.v==="c")c++;if(a.v==="n"){n++;(it[2]?cf:af).push([s[0],it[0],a.n||"",it[2]])}}));
+const mb=[];M[st.net].forEach(([id,l,f])=>{const v=st.meas[st.net+id];if(v===undefined||v==="")return;const r=f(+v,st.meta);if(r[0]==="bad")mb.push([l,v,r[1]])});
+const done=c+n+secs().reduce((x,s,si)=>x+s[1].filter((_,ii)=>st.ans[mk(si,ii)]?.v==="a").length,0);
+return{c,n,t,done,pct:c+n?Math.round(100*c/(c+n)):0,cf,af,mb}}
+
+function verdict(s){if(s.cf.length||s.mb.length)return["bad","No conforme"];if(s.pct>=90)return["ok","Aprobada"];if(s.pct>=75)return["warn","Aprobada con observaciones"];return["bad","No conforme"]}
+function head(){const s=stats();$("sc").textContent=s.pct+"%";$("sb").style.width=s.pct+"%";$("sa").textContent=s.done+"/"+s.t;updateMem();return s}
+
+function buildPayload(sObj){
+  const s=stats();
+  const [,veredicto]=verdict(s);
+  const sub=sObj.meta.sub||(sObj.net==="HFC"?"RG-6":"Urbana");
+  const detalle=[];
+  const fotos=[];
+  let itemGlobalIdx=0;
+
+  S[sObj.net][sObj.proc].forEach((sc,si)=>{
+    sc[1].forEach((it,ii)=>{
+      const k=sObj.net+sObj.proc+si+"."+ii;
+      const a=sObj.ans[k]||{};
+      const resTxt={c:"Cumple",n:"No cumple",a:"N/A"}[a.v]||"Sin evaluar";
+      const pList=a.p||[];
+      pList.forEach(b64=>fotos.push({itemIdx:itemGlobalIdx,base64:b64}));
+      detalle.push({
+        seccion:sc[0],
+        item:it[0],
+        referencia:it[1],
+        critico:it[2]?"Sí":"No",
+        resultado:resTxt,
+        observacion:a.n||"",
+        fotosCount:pList.length
+      });
+      itemGlobalIdx++;
+    });
+  });
+
+  M[sObj.net].forEach(([id,l,f])=>{
+    const v=sObj.meas[sObj.net+id];
+    if(v!==undefined&&v!==""){
+      detalle.push({
+        seccion:"Mediciones",
+        item:l,
+        referencia:"",
+        critico:"",
+        resultado:`${v} (${f(+v,sObj.meta)[1]})`,
+        observacion:"",
+        fotosCount:0
+      });
+    }
+  });
+
+  return{
+    fecha:sObj.meta.fecha||"",
+    auditor:sObj.meta.aud||"",
+    tecnico:sObj.meta.tec||"",
+    ot:sObj.meta.ot||"",
+    direccion:sObj.meta.dir||"",
+    red:sObj.net,
+    proceso:sObj.proc==="inst"?"Instalación":"Mantenimiento",
+    subtipo:sub,
+    puntaje:s.pct,
+    veredicto,
+    cumple:s.c,
+    noCumple:s.n,
+    detalle,
+    fotos
+  };
+}
+
+function downloadXLSX(){
+  if(typeof XLSX==="undefined")return alert("La librería Excel requiere conexión a internet la primera vez.");
+  const p=buildPayload(st);
+  const wb=XLSX.utils.book_new();
+  const wsResumen=XLSX.utils.json_to_sheet([{
+    "Fecha":p.fecha,"Auditor":p.auditor,"Técnico":p.tecnico,"N° OT":p.ot,
+    "Dirección":p.direccion,"Red":p.red,"Proceso":p.proceso,"Subtipo":p.subtipo,
+    "Puntaje %":p.puntaje+"%","Veredicto":p.veredicto,"Cumple":p.cumple,"No Cumple":p.noCumple,
+    "Total Fotos":p.fotos.length
+  }]);
+  const wsDetalle=XLSX.utils.json_to_sheet(p.detalle.map(d=>({
+    "Sección":d.seccion,"Ítem / Medición":d.item,"Referencia":d.referencia,
+    "Crítico":d.critico,"Resultado":d.resultado,"Observación":d.observacion,"Fotos Adjuntas":d.fotosCount
+  })));
+  XLSX.utils.book_append_sheet(wb,wsResumen,"Resumen");
+  XLSX.utils.book_append_sheet(wb,wsDetalle,"Detalle_Auditoria");
+  XLSX.writeFile(wb,`Auditoria_${p.red}_OT_${p.ot||"SN"}_${p.fecha}.xlsx`);
+}
+
+async function sendToDrive(btn){
+  const url=getDriveUrl();
+  if(!url||!url.startsWith("https://script.google.com/")){
+    alert("⚠️ La URL de Google Apps Script no es válida.");
+    return;
+  }
+  const origText=btn.textContent;
+  btn.disabled=true;
+  btn.textContent="⏳ Subiendo a Drive...";
+
+  try{
+    const payload=buildPayload(st);
+    const isFileProtocol=location.protocol==="file:";
+    const resp=await fetch(url,{
+      method:"POST",
+      mode:isFileProtocol?"no-cors":"cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(payload)
+    });
+    if(isFileProtocol||resp.type==="opaque"){
+      alert("✅ Auditoría enviada a Google Drive.\n\nRevisa en unos segundos tu carpeta 'Auditorías Campo HFC y GPON' y el archivo 'Consolidado_Auditorias_Campo'.");
+    }else{
+      const res=await resp.json();
+      if(res.status==="ok"){
+        alert("✅ Auditoría guardada en Google Drive.\n\n• Consolidado Excel actualizado\n• Carpeta de evidencias creada");
+      }else{
+        throw new Error(res.message||"Error en Apps Script");
+      }
+    }
+  }catch(err){
+    alert("❌ No se pudo enviar a Drive: "+err.message+"\n\nVerifica tu conexión a internet y que el script esté implementado para 'Cualquier persona'.");
+  }finally{
+    btn.disabled=false;
+    btn.textContent=origText;
+  }
+}
+
+function render(){
+  const s=stats();
+  $("sn").innerHTML=["HFC","GPON"].map(n=>`<button class="${st.net===n?"on":""}" data-n="${n}">${n}</button>`).join("");
+  $("sp").innerHTML=[["inst","Instalación"],["mant","Mantenimiento"]].map(([k,l])=>`<button class="${st.proc===k?"on":""}" data-p="${k}">${l}</button>`).join("");
+  const m=st.meta,sub=st.net==="HFC"?["RG-6","RG-11"]:["Urbana","Rural"];
+  const driveConfigured=Boolean(getDriveUrl());
+
+  let h=`<div class="card"><h2>Datos de la visita</h2><div class="pad">
+    <div class="g2">
+      <div><label>Auditor</label><input data-m="aud" value="${E(m.aud)}"></div>
+      <div><label>Fecha</label><input type="date" data-m="fecha" value="${E(m.fecha)}"></div>
+      <div><label>Técnico auditado</label><input data-m="tec" value="${E(m.tec)}"></div>
+      <div><label>N.º de OT</label><input data-m="ot" value="${E(m.ot)}"></div>
+    </div>
+    <label>Dirección</label><input data-m="dir" value="${E(m.dir)}">
+    <label>${st.net==="HFC"?"Tipo de cable":"Zona"}</label><select data-m="sub">${sub.map(o=>`<option ${m.sub===o||(!m.sub&&o===sub[0])?"selected":""}>${o}</option>`).join("")}</select>
+    <div class="cfg-box">
+      ☁️ <b>Conexión Google Drive:</b> ${driveConfigured?"Configurada ✅":"Sin configurar ⚠️"}
+      <button type="button" id="bcfg" style="margin-left:8px;padding:4px 8px;border-radius:6px;border:1px solid var(--brand);background:transparent;color:var(--brand);font-size:12px;cursor:pointer">Configurar URL</button>
+    </div>
+  </div></div>`;
+
+  h+=`<details class="card" ${open.has("m")?"open":""} data-o="m"><summary>Mediciones <small>se evalúan solas</small></summary>`+M[st.net].map(([id,l,f])=>{const v=st.meas[st.net+id];const r=v===undefined||v===""?["na","Sin dato"]:f(+v,m);return`<div class="m"><div><label>${l}</label></div><input type="number" step="0.1" inputmode="decimal" data-ms="${id}" value="${E(v)}"><div class="chip ${r[0]}" id="c-${id}">${E(r[1])}</div></div>`}).join("")+`</details>`;
+
+  secs().forEach((sc,si)=>{
+    const d=sc[1].filter((_,ii)=>st.ans[mk(si,ii)]?.v).length;
+    const pCount=sc[1].reduce((sum,_,ii)=>sum+(st.ans[mk(si,ii)]?.p?.length||0),0);
+    h+=`<details class="card" ${open.has(si)?"open":""} data-o="${si}"><summary>${E(sc[0])} <small>${pCount?`📷 ${pCount} · `:""}${d}/${sc[1].length}</small></summary>`+sc[1].map((it,ii)=>{
+      const k=mk(si,ii),a=st.ans[k]||{},photos=a.p||[];
+      return`<div class="it">
+        <p>${E(it[0])} ${it[2]?'<span class="crit">Crítico</span>':""}<br><span class="ref">${E(it[1])}</span></p>
+        <div class="b3">${[["c","ok","Cumple"],["n","bad","No cumple"],["a","na","N/A"]].map(([v,c,l])=>`<button class="${c} ${a.v===v?"on":""}" data-k="${k}" data-v="${v}">${l}</button>`).join("")}</div>
+        ${a.v==="n"?`<textarea data-nk="${k}" placeholder="Hallazgo y evidencia">${E(a.n)}</textarea>`:""}
+        <div class="ph-row">
+          <label class="ph-btn">📷 Adjuntar foto<input type="file" accept="image/*" multiple data-pk="${k}"></label>
+          ${photos.length?`<span class="ph-cnt">${photos.length} foto${photos.length>1?"s":""}</span>`:""}
+        </div>
+        ${photos.length?`<div class="thumbs">${photos.map((src,pi)=>`<div class="th"><img src="${src}" data-view="1" alt="Evidencia ${pi+1}"><button type="button" title="Eliminar foto" data-delp="${k}" data-pi="${pi}">×</button></div>`).join("")}</div>`:""}
+      </div>`}).join("")+`</details>`;
+  });
+
+  const[vc,vt]=verdict(s);
+  h+=`<div class="card"><div class="res ${vc}"><h3>${vt} · ${s.pct}%</h3><div>${s.c} cumple, ${s.n} no cumple, ${s.t-s.done} sin evaluar</div>${s.cf.length+s.mb.length?`<p><b>Hallazgos críticos</b></p><ul>${s.cf.map(x=>`<li>${E(x[1])}</li>`).join("")}${s.mb.map(x=>`<li>${E(x[0])}: ${E(x[1])} (${E(x[2])})</li>`).join("")}</ul>`:""}${s.af.length?`<p><b>Otros incumplimientos (${s.af.length})</b></p>`:""}</div></div>
+  <div class="act">
+    <button id="bdrive" class="drive">☁️ Guardar en Drive (Excel)</button>
+    <button id="bxlsx" class="sec">📥 Descargar .XLSX</button>
+    <button id="bs" class="sec">Guardar local</button>
+    <button id="bp" class="sec">Imprimir / PDF</button>
+    <button id="bn" class="sec">Nueva auditoría</button>
+  </div><div id="hist"></div>`;
+  $("app").innerHTML=h;head();hist();
+}
+
+function getH(){try{return JSON.parse(localStorage.getItem("aud-hist")||"[]")}catch(e){return[]}}
+
+function hist(){const l=getH();$("hist").innerHTML=l.length?`<div class="card"><h2>Borradores guardados en el dispositivo (${l.length})</h2>`+l.map((x,i)=>{
+  const tp=Object.values(x.ans||{}).reduce((acc,a)=>acc+(a.p?.length||0),0);
+  return`<div class="it"><b>${E(x.net)} ${x.proc==="inst"?"instalación":"mantenimiento"}</b> · OT ${E(x.meta.ot)||"s/n"} · ${E(x.meta.fecha)} ${tp?`· 📷 ${tp}`:""}<br><span class="ref">${E(x.meta.tec)} · ${E(x.meta.dir)}</span><div class="b3" style="margin-top:6px"><button data-ld="${i}">Abrir</button><button data-dl="${i}">Borrar</button></div></div>`
+}).join("")+`</div>`:""}
+
+document.addEventListener("click",e=>{
+  if(e.target.dataset?.view){$("imgFull").src=e.target.src;$("imgDlg").showModal();return}
+  const t=e.target.closest("button");if(!t)return;
+  if(t.id==="bcfg"){
+    const cur=getDriveUrl();
+    const u=prompt("Pega la URL de Google Apps Script (/exec):",cur);
+    if(u!==null){localStorage.setItem("aud-drive-url",u.trim());render()}
+    return;
+  }
+  if(t.id==="bdrive")return sendToDrive(t);
+  if(t.id==="bxlsx")return downloadXLSX();
+  if(t.dataset.delp!==undefined){
+    const a=st.ans[t.dataset.delp];
+    if(a?.p){a.p.splice(+t.dataset.pi,1);if(!a.p.length)delete a.p}
+  }
+  else if(t.dataset.n){st={...st,net:t.dataset.n,meta:{...st.meta,sub:""}};open.clear();open.add(0)}
+  else if(t.dataset.p){st.proc=t.dataset.p;open.clear();open.add(0)}
+  else if(t.dataset.k){const a=st.ans[t.dataset.k]||(st.ans[t.dataset.k]={});a.v=a.v===t.dataset.v?"":t.dataset.v}
+  else if(t.id==="bs"){
+    const l=getH();l.unshift(JSON.parse(JSON.stringify(st)));
+    try{localStorage.setItem("aud-hist",JSON.stringify(l.slice(0,30)));alert("Borrador guardado en el dispositivo.")}
+    catch(x){alert("⚠️ Espacio lleno en el dispositivo.")}
+  }
+  else if(t.id==="bp")return window.print();
+  else if(t.id==="bn"){if(!confirm("¿Empezar una auditoría nueva? Lo no guardado se pierde."))return;st={net:st.net,proc:st.proc,meta:{aud:st.meta.aud,fecha:new Date().toISOString().slice(0,10)},ans:{},meas:{}}}
+  else if(t.dataset.ld!==undefined){st=getH()[+t.dataset.ld]}
+  else if(t.dataset.dl!==undefined){const l=getH();l.splice(+t.dataset.dl,1);try{localStorage.setItem("aud-hist",JSON.stringify(l))}catch(x){}}
+  else return;
+  save();render();
+});
+
+document.addEventListener("change",async e=>{
+  const k=e.target.dataset?.pk;
+  if(!k||!e.target.files?.length)return;
+  const files=[...e.target.files];
+  const a=st.ans[k]||(st.ans[k]={});
+  a.p=a.p||[];
+  for(const f of files){
+    try{const b64=await compressImage(f);a.p.push(b64)}
+    catch(err){console.error("Error procesando imagen",err)}
+  }
+  save();render();
+});
+
+document.addEventListener("input",e=>{const t=e.target;
+if(t.dataset.m){st.meta[t.dataset.m]=t.value;save();if(t.dataset.m==="sub")render()}
+else if(t.dataset.nk){(st.ans[t.dataset.nk]=st.ans[t.dataset.nk]||{}).n=t.value;save()}
+else if(t.dataset.ms){st.meas[st.net+t.dataset.ms]=t.value;const f=M[st.net].find(x=>x[0]===t.dataset.ms)[2];const r=t.value===""?["na","Sin dato"]:f(+t.value,st.meta);const c=$("c-"+t.dataset.ms);c.className="chip "+r[0];c.textContent=r[1];save()}});
+
+document.addEventListener("toggle",e=>{const o=e.target.dataset?.o;if(o!==undefined){const k=o==="m"?"m":+o;e.target.open?open.add(k):open.delete(k)}},true);
+render();
+</script></body></html>
